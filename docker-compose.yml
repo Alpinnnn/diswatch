@@ -1,0 +1,28 @@
+services:
+  diswatch:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      platforms:
+        - linux/arm64
+    image: diswatch:local
+    container_name: diswatch
+    platform: linux/arm64
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      DISWATCH_ADDR: ":8080"
+      DISWATCH_DATA_DIR: "/app/data"
+      # Recommended: set a stable base64-encoded 32-byte key.
+      # Generate: openssl rand -base64 32
+      # DISWATCH_SECRET_KEY: "replace-with-generated-key"
+    volumes:
+      - ./data:/app/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

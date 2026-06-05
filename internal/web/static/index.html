@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Diswatch</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div id="toast-container" class="toast-container"></div>
+
+  <main class="shell">
+    <section id="auth-view" class="auth-panel hidden">
+      <div>
+        <p class="eyebrow">Personal Discord RPC Automator</p>
+        <h1>Diswatch</h1>
+        <p class="muted">Local dashboard for Custom Presence and Jellyfin watch activity.</p>
+      </div>
+      <form id="setup-form" class="stack hidden">
+        <label>
+          Admin password
+          <input id="setup-password" type="password" minlength="8" autocomplete="new-password" required>
+        </label>
+        <button type="submit">Create dashboard login</button>
+      </form>
+      <form id="login-form" class="stack hidden">
+        <label>
+          Admin password
+          <input id="login-password" type="password" autocomplete="current-password" required>
+        </label>
+        <button type="submit">Sign in</button>
+      </form>
+      <p id="auth-message" class="message"></p>
+    </section>
+
+    <section id="app-view" class="hidden">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Diswatch</p>
+          <h1>RPC Dashboard</h1>
+        </div>
+        <div class="top-actions">
+          <div class="mode-switch" role="group" aria-label="Mode">
+            <button id="mode-custom" type="button">Custom</button>
+            <button id="mode-jellyfin" type="button">Jellyfin</button>
+          </div>
+          <button id="logout-button" type="button" class="ghost">Logout</button>
+        </div>
+      </header>
+
+      <section class="status-grid">
+        <div class="status-item">
+          <span>Discord</span>
+          <strong id="discord-state"><span class="status-dot disconnected"></span>Unknown</strong>
+        </div>
+        <div class="status-item">
+          <span>Mode</span>
+          <strong id="mode-state">Dual</strong>
+        </div>
+        <div class="status-item">
+          <span>Jellyfin</span>
+          <strong id="jellyfin-state"><span class="status-dot disconnected"></span>Idle</strong>
+        </div>
+      </section>
+
+      <section class="layout">
+        <form id="discord-form" class="panel stack">
+          <div class="panel-heading">
+            <h2>Discord Gateway</h2>
+            <button id="reconnect-button" type="button" class="ghost">Reconnect</button>
+          </div>
+          <label>
+            User token
+            <input id="discord-token" type="password" autocomplete="off" placeholder="Leave blank to keep current token">
+          </label>
+          <p id="discord-token-state" class="hint"></p>
+          <label>
+            Gateway URL
+            <input id="gateway-url" type="url">
+          </label>
+          <label>
+            Application ID
+            <input id="application-id" inputmode="numeric" placeholder="Optional, needed for uploaded activity assets">
+          </label>
+          <label>
+            Status
+            <select id="discord-status">
+              <option value="online">Online</option>
+              <option value="idle">Idle</option>
+              <option value="dnd">Do Not Disturb</option>
+              <option value="invisible">Invisible</option>
+            </select>
+          </label>
+          <label class="inline-check">
+            <input id="clear-discord-token" type="checkbox">
+            Clear saved Discord token
+          </label>
+          <button type="submit">Save Discord settings</button>
+        </form>
+
+        <form id="custom-form" class="panel stack">
+          <div class="panel-heading">
+            <h2>Custom RPC</h2>
+            <span class="pill">Manual</span>
+          </div>
+          <div class="two-col">
+            <label>
+              Activity name
+              <input id="custom-name" maxlength="128" required>
+            </label>
+            <label>
+              Activity type
+              <select id="custom-type">
+                <option value="0">Playing</option>
+                <option value="2">Listening</option>
+                <option value="3">Watching</option>
+                <option value="5">Competing</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            Details
+            <input id="custom-details" maxlength="128">
+          </label>
+          <label class="small">
+            URL
+            <input id="details-url" type="url" class="small-input" placeholder="https://...">
+          </label>
+          <label>
+            State
+            <input id="custom-state" maxlength="128">
+          </label>
+          <label class="small">
+            URL
+            <input id="state-url" type="url" class="small-input" placeholder="https://...">
+          </label>
+          <div class="two-col">
+            <label>
+              Large image
+              <input id="large-image" placeholder="Asset ID or public media URL">
+            </label>
+            <label>
+              Large image text
+              <input id="large-text" maxlength="128">
+            </label>
+            <label>
+              Small image
+              <input id="small-image" placeholder="Asset ID or public media URL">
+            </label>
+            <label>
+              Small image text
+              <input id="small-text" maxlength="128">
+            </label>
+          </div>
+          <label class="inline-check">
+            <input id="use-elapsed" type="checkbox">
+            Show elapsed timer
+          </label>
+          <div class="two-col">
+            <label>
+              Button 1 label
+              <input id="button1-label" maxlength="32">
+            </label>
+            <label>
+              Button 1 URL
+              <input id="button1-url" type="url" maxlength="512">
+            </label>
+            <label>
+              Button 2 label
+              <input id="button2-label" maxlength="32">
+            </label>
+            <label>
+              Button 2 URL
+              <input id="button2-url" type="url" maxlength="512">
+            </label>
+          </div>
+          <button type="submit">Save Custom RPC</button>
+        </form>
+
+        <form id="jellyfin-form" class="panel stack">
+          <div class="panel-heading">
+            <h2>Jellyfin</h2>
+            <button id="test-jellyfin-button" type="button" class="ghost">Test</button>
+          </div>
+          <label>
+            Jellyfin URL
+            <input id="jellyfin-url" type="url" placeholder="http://192.168.1.10:8096">
+          </label>
+          <label>
+            API key
+            <input id="jellyfin-api-key" type="password" autocomplete="off" placeholder="Leave blank to keep current key">
+          </label>
+          <p id="jellyfin-key-state" class="hint"></p>
+          <div class="two-col">
+            <label>
+              User ID filter
+              <input id="jellyfin-user-id" placeholder="Optional">
+            </label>
+            <label>
+              Username filter
+              <input id="jellyfin-username" placeholder="Optional">
+            </label>
+          </div>
+          <div class="two-col">
+            <label>
+              Poll interval
+              <input id="poll-interval" type="number" min="15" max="3600" step="1">
+            </label>
+            <label>
+              Activity name
+              <input id="jellyfin-name" maxlength="128" placeholder="Default: Jellyfin">
+            </label>
+          </div>
+          <label class="inline-check">
+            <input id="clear-on-pause" type="checkbox">
+            Clear presence when paused
+          </label>
+          <label class="inline-check">
+            <input id="clear-jellyfin-key" type="checkbox">
+            Clear saved Jellyfin API key
+          </label>
+          <label>
+            Webhook secret
+            <input id="webhook-secret" autocomplete="off">
+          </label>
+          <div class="webhook-box">
+            <span>Webhook URL</span>
+            <code id="webhook-url"></code>
+          </div>
+          <button type="submit">Save Jellyfin settings</button>
+        </form>
+      </section>
+
+      <div id="app-message" class="message"></div>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

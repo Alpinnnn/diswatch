@@ -1,0 +1,7 @@
+.git
+data
+dist
+*.exe
+*.test
+coverage.out
+README.md
