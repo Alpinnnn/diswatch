@@ -10,6 +10,20 @@ import (
 	"time"
 )
 
+// Shared HTTP transport for connection pooling across all jellyfin clients
+var sharedTransport = &http.Transport{
+	MaxIdleConns:        5,
+	MaxIdleConnsPerHost: 3,
+	IdleConnTimeout:     90 * time.Second,
+	DisableKeepAlives:   false,
+	MaxConnsPerHost:     3,
+}
+
+var sharedClient = &http.Client{
+	Transport: sharedTransport,
+	Timeout:  10 * time.Second,
+}
+
 type Client struct {
 	http *http.Client
 }
@@ -55,7 +69,7 @@ type PlayState struct {
 
 func NewClient() *Client {
 	return &Client{
-		http: &http.Client{Timeout: 10 * time.Second},
+		http: sharedClient,
 	}
 }
 
@@ -95,55 +109,6 @@ func (c *Client) SessionsWithTimeout(ctx context.Context, timeout time.Duration,
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	return c.Sessions(ctx, settings)
-}
-
-// GetItemBackdrop fetches the backdrop URL for a given item ID from Jellyfin API
-func (c *Client) GetItemBackdrop(ctx context.Context, settings Settings, itemID string) (string, error) {
-	base, err := url.Parse(strings.TrimRight(settings.URL, "/"))
-	if err != nil {
-		return "", err
-	}
-	base.Path = strings.TrimRight(base.Path, "/") + fmt.Sprintf("/Items/%s", itemID)
-	query := base.Query()
-	query.Set("api_key", settings.APIKey)
-	base.RawQuery = query.Encode()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, base.String(), nil)
-	if err != nil {
-		return "", err
-	}
-	addAuthHeaders(req, settings.APIKey)
-
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return "", fmt.Errorf("jellyfin get item returned %s", resp.Status)
-	}
-
-	var item Item
-	if err := json.NewDecoder(resp.Body).Decode(&item); err != nil {
-		return "", err
-	}
-
-	// Prefer BackdropDropPath, fallback to first element of Backdrops array
-	if item.BackdropDropPath != "" {
-		return buildBackdropURL(settings.URL, item.BackdropDropPath), nil
-	}
-	if len(item.Backdrops) > 0 {
-		return buildBackdropURL(settings.URL, item.Backdrops[0]), nil
-	}
-	return "", nil
-}
-
-func buildBackdropURL(baseURL, path string) string {
-	base := strings.TrimRight(baseURL, "/")
-	if strings.HasPrefix(path, "/") {
-		return base + path
-	}
-	return base + "/" + path
 }
 
 func addAuthHeaders(req *http.Request, token string) {

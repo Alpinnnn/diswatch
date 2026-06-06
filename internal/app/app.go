@@ -231,8 +231,8 @@ func (a *App) applyModePresence(cfg config.Config) {
 	// Always start with custom
 	presence := discord.FromCustomAt(cfg, a.customElapsedStartFor(cfg))
 
-	// Overlay jellyfin activity if enabled and playing
-	if cfg.Mode&config.ModeJellyfin != 0 {
+	// Overlay jellyfin activity only if jellyfin mode is enabled AND configured
+	if cfg.Mode&config.ModeJellyfin != 0 && cfg.Jellyfin.URL != "" && cfg.Jellyfin.APIKey != "" {
 		// Get current jellyfin sessions to build activity with full details
 		sessions, err := a.jellyfin.SessionsWithTimeout(context.Background(), 5*time.Second, jellyfin.Settings{
 			URL:    cfg.Jellyfin.URL,

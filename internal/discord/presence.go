@@ -56,10 +56,6 @@ func ClearPresence(status string) Presence {
 	}
 }
 
-func FromCustom(cfg config.Config) Presence {
-	return FromCustomAt(cfg, 0)
-}
-
 func FromCustomAt(cfg config.Config, elapsedStart int64) Presence {
 	activity := Activity{
 		Name:          cfg.Custom.Name,
@@ -100,26 +96,23 @@ func FormatImageKey(value string) string {
 	if value == "" {
 		return ""
 	}
-	// Already has media proxy prefix
 	if strings.HasPrefix(value, "mp:") {
 		return value
 	}
 	parsed, err := url.Parse(value)
-	if err != nil || parsed.Scheme == "" {
-		// No scheme = uploaded asset key, return as-is
+	if err != nil || parsed.Scheme == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 		return value
 	}
-	if parsed.Scheme != "http" && parsed.Scheme != "https" {
-		return value
-	}
-	// External URL detected - use Discord's media proxy (mp:) prefix
-	// This allows images from any CDN (Tenor, Giphy, Imgur, etc.) to be proxied by Discord
+	// External URL - use Discord's media proxy prefix
 	host := parsed.Hostname()
 	if port := parsed.Port(); port != "" {
 		host += ":" + port
 	}
-	// Reconstruct URL without default port (e.g., :443 for https)
-	return "mp:" + parsed.Scheme + "://" + host + parsed.Path + parsed.RawQuery
+	result := "mp:" + parsed.Scheme + "://" + host + parsed.Path
+	if parsed.RawQuery != "" {
+		result += "?" + parsed.RawQuery
+	}
+	return result
 }
 
 func HashPresence(p Presence) string {
