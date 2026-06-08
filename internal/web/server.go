@@ -14,6 +14,7 @@ import (
 	"diswatch/internal/config"
 	"diswatch/internal/discord"
 	"diswatch/internal/security"
+	"diswatch/internal/version"
 )
 
 //go:embed static/*
@@ -38,6 +39,7 @@ func NewServer(runtime *app.App, logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", server.health)
 	mux.HandleFunc("GET /api/bootstrap", server.bootstrap)
+	mux.HandleFunc("GET /api/version", server.version)
 	mux.HandleFunc("POST /api/setup", server.setup)
 	mux.HandleFunc("POST /api/login", server.login)
 	mux.HandleFunc("POST /api/jellyfin/webhook", server.jellyfinWebhook)
@@ -60,9 +62,20 @@ func (s *Server) health(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
+func (s *Server) version(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]string{
+		"version":    version.Version,
+		"commit":     version.Commit,
+		"build_time": version.BuildTime,
+		"full":       version.FullString(),
+	})
+}
+
 func (s *Server) bootstrap(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"initialized": s.app.Config().Initialized(),
+		"version":      version.String(),
+		"version_full": version.FullString(),
 	})
 }
 

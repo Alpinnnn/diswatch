@@ -29,6 +29,14 @@ type App struct {
 	presenceMu             sync.Mutex
 	customElapsedStart     int64
 	customElapsedSignature string
+
+	// Cached jellyfin presence to prevent race condition
+	// When jellyfin session is active, cache it so fallback doesn't revert to custom
+	jellyfinCache struct {
+		presence  discord.Presence
+		timestamp time.Time
+		valid     bool
+	}
 }
 
 type JellyfinStatus struct {
@@ -132,6 +140,14 @@ func (a *App) ApplyWebhook(raw map[string]any, secret string) bool {
 		status.LastError = ""
 	})
 
+	// Invalidate jellyfin cache when playback stops (to properly revert to custom)
+	// or when paused (if ClearOnPause is enabled)
+	if !active {
+		a.presenceMu.Lock()
+		a.jellyfinCache.valid = false
+		a.presenceMu.Unlock()
+	}
+
 	// Update presence based on current mode
 	a.applyModePresence(cfg)
 	return true
@@ -215,6 +231,14 @@ func (a *App) pollOnce(ctx context.Context, cfg config.Config) {
 		status.Active = active
 	})
 
+	// Invalidate jellyfin cache when poll confirms no active session
+	// This ensures cache expires properly when playback actually stops
+	if !active {
+		a.presenceMu.Lock()
+		a.jellyfinCache.valid = false
+		a.presenceMu.Unlock()
+	}
+
 	// Update presence with jellyfin overlay
 	a.applyModePresence(cfg)
 }
@@ -222,6 +246,8 @@ func (a *App) pollOnce(ctx context.Context, cfg config.Config) {
 func (a *App) applyDiscordConfig(cfg config.Config) {
 	a.discord.Configure(cfg.Discord.Token, cfg.Discord.GatewayURL)
 }
+
+const jellyfinCacheTTL = 2 * time.Minute // Keep jellyfin cache for 2 minutes after last seen
 
 func (a *App) applyModePresence(cfg config.Config) {
 	// Build presence based on dual mode:
@@ -272,12 +298,53 @@ func (a *App) applyModePresence(cfg config.Config) {
 					}
 				}
 
+				// Cache the jellyfin presence so subsequent calls don't revert to custom
+				a.presenceMu.Lock()
+				a.jellyfinCache.presence = discord.Presence{
+					Activities: []discord.Activity{activity},
+					Status:     presence.Status,
+					AFK:        false,
+				}
+				a.jellyfinCache.timestamp = time.Now()
+				a.jellyfinCache.valid = true
+				a.presenceMu.Unlock()
+
 				presence.Activities = []discord.Activity{activity}
+			} else {
+				// No active session - check if we should use cached jellyfin presence
+				a.presenceMu.Lock()
+				if a.jellyfinCache.valid && time.Since(a.jellyfinCache.timestamp) < jellyfinCacheTTL {
+					// Still within TTL - use cached jellyfin presence
+					presence = a.jellyfinCache.presence
+					presence.Status = normalizeStatus(cfg.Discord.Status)
+				} else {
+					a.jellyfinCache.valid = false
+				}
+				a.presenceMu.Unlock()
 			}
+		} else {
+			// Sessions fetch failed - check if we have cached jellyfin presence
+			a.presenceMu.Lock()
+			if a.jellyfinCache.valid && time.Since(a.jellyfinCache.timestamp) < jellyfinCacheTTL {
+				// Use cached jellyfin presence to prevent reverting to custom
+				presence = a.jellyfinCache.presence
+				presence.Status = normalizeStatus(cfg.Discord.Status)
+			}
+			a.presenceMu.Unlock()
 		}
 	}
 
 	a.discord.SetPresence(presence)
+}
+
+// normalizeStatus normalizes Discord status string
+func normalizeStatus(status string) string {
+	switch status {
+	case "online", "idle", "dnd", "invisible":
+		return status
+	default:
+		return "online"
+	}
 }
 
 func (a *App) customElapsedStartFor(cfg config.Config) int64 {

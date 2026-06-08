@@ -75,7 +75,6 @@ Setiap kali mengembangkan fitur baru:
 2. **PROPOSE:** Ajukan rencana kepada user sebelum menulis kode.
 3. **CODE:** Tulis kode modular dengan komentar pada logika kompleks.
 4. **TEST:** Pastikan `go test ./...` lulus.
-5. **BENCHMARK:** Verifikasi memory usage < 100MB saat idle.
 
 ## 7. Build & Deployment
 

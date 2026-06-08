@@ -13,7 +13,14 @@ import (
 
 	"diswatch/internal/app"
 	"diswatch/internal/config"
+	"diswatch/internal/version"
 	"diswatch/internal/web"
+)
+
+var (
+	Version   = version.Version
+	Commit    = version.Commit
+	BuildTime = version.BuildTime
 )
 
 func main() {
@@ -50,7 +57,7 @@ func main() {
 	}
 
 	go func() {
-		logger.Info("diswatch listening", "addr", addr)
+		logger.Info(version.FullString(), "addr", addr)
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("http server failed", "err", err)
 			stop()

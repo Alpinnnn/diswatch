@@ -70,6 +70,14 @@ async function bootstrap() {
     show("auth");
     $("setup-form").classList.toggle("hidden", data.initialized);
     $("login-form").classList.toggle("hidden", !data.initialized);
+
+    // Display version in footer
+    const versionDisplay = $("version-display");
+    if (versionDisplay && data.version_full) {
+      versionDisplay.textContent = data.version_full;
+    } else if (versionDisplay && data.version) {
+      versionDisplay.textContent = data.version;
+    }
   } catch (error) {
     showToast("Failed to connect to server", "error");
   }

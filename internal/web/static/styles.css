@@ -91,6 +91,16 @@ code {
   width: min(1180px, calc(100% - 28px));
   margin: 0 auto;
   padding: 28px 0;
+  min-height: calc(100vh - 48px);
+}
+
+.footer {
+  text-align: center;
+  padding: 14px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  border-top: 1px solid var(--line);
+  background: var(--bg);
 }
 
 .hidden {
